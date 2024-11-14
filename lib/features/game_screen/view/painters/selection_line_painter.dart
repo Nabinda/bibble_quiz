@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SelectionLinePainter extends CustomPainter {
-  final Offset? startPoint;
+  final Offset? startPoint; // Grid Start value
   final Offset? endPoint;
   final double cellSize;
   final Color color;

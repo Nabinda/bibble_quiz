@@ -26,8 +26,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   List<String> foundWords = [];
   String currentSelection = "";
   Offset? startPoint, endPoint;
-  final double horizontalSpacing = 12;
-  final double verticalSpacing = 12;
+  final double cellHorizontalMargin = 6;
+  final double cellVerticalMargin = 6;
   List<Offset> selectedIndices = [];
   final Color correctColor = Colors.green;
   Map<Offset, Color> cellColors = {};
@@ -35,6 +35,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   List<Offset> permanentLinesStartEnd = [];
   bool showLine = false;
   late ImageProvider bgImage;
+  final double horizontalPadding = 20;
 
   @override
   void initState() {
@@ -181,7 +182,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double cellSize = (context.widthPx - 48) / grid.length;
+    double cellSize =
+        (context.widthPx - (horizontalPadding * 2)) / grid.first.length;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -222,93 +224,101 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
             Spacing.sizedBoxH_40(),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return GestureDetector(
-                      onPanStart: (details) {
-                        final row =
-                            (details.localPosition.dy ~/ cellSize).toInt();
-                        final col =
-                            (details.localPosition.dx ~/ cellSize).toInt();
-                        log("Current Cell Grid : ($row,$col))");
-                        startSelection(row, col);
-                      },
-                      onPanUpdate: (details) {
-                        final row =
-                            (details.localPosition.dy ~/ cellSize).toInt();
-                        final col =
-                            (details.localPosition.dx ~/ cellSize).toInt();
-                        log("Current Cell Grid : ($row,$col))");
-                        if (row >= 0 &&
-                            row < grid.length &&
-                            col >= 0 &&
-                            col < grid.length) {
-                          updateSelection(row, col);
-                        }
-                      },
-                      onPanEnd: (_) => endSelection(),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            top: 24,
-                            child: CustomPaint(
-                              size: Size(
-                                  constraints.maxWidth, constraints.maxHeight),
-                              painter: SelectionLinePainter(
-                                startPoint,
-                                endPoint,
-                                cellSize,
-                                correctColor,
-                                showLine,
-                                permanentLinesStartEnd,
-                              ),
-                            ),
-                          ),
-                          GridView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: grid.length,
-                              crossAxisSpacing: horizontalSpacing,
-                              mainAxisSpacing: verticalSpacing,
-                            ),
-                            itemCount: grid.length * grid.length,
-                            itemBuilder: (context, index) {
-                              int row = index ~/ grid.length;
-                              int col = index % grid.length;
-                              Offset pos =
-                                  Offset(row.toDouble(), col.toDouble());
-                              Color cellColor = cellColors[pos] ?? Colors.white;
-                              if (permanentIndices.contains(pos)) {
-                                cellColor = correctColor;
-                              }
-                              return Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: cellColor,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  grid[row][col],
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: GestureDetector(
+                onPanStart: (details) {
+                  final row = (details.localPosition.dy ~/ cellSize).toInt();
+                  final col = (details.localPosition.dx ~/ cellSize).toInt();
+                  if (row >= 0 &&
+                      row < grid.length &&
+                      col >= 0 &&
+                      col < grid.length) {
+                    startSelection(row, col);
+                  }
+                },
+                onPanUpdate: (details) {
+                  final row = (details.localPosition.dy ~/ cellSize).toInt();
+                  final col = (details.localPosition.dx ~/ cellSize).toInt();
+
+                  if (row >= 0 &&
+                      row < grid.length &&
+                      col >= 0 &&
+                      col < grid.length) {
+                    updateSelection(row, col);
+                  }
+                },
+                onPanEnd: (_) => endSelection(),
+                child: SizedBox(
+                  height: grid.length * cellSize,
+                  child: Stack(
+                    alignment: Alignment.topCenter,
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      CustomPaint(
+                        size: Size(context.widthPx, 50),
+                        painter: SelectionLinePainter(
+                          startPoint,
+                          endPoint,
+                          cellSize,
+                          correctColor,
+                          showLine,
+                          permanentLinesStartEnd,
+                        ),
                       ),
-                    );
-                  },
+                      MediaQuery.removePadding(
+                        context: context,
+                        removeTop: true,
+                        removeBottom: true,
+                        child: GridView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: grid.first.length),
+                          itemCount: grid.length * grid.first.length,
+                          itemBuilder: (context, index) {
+                            int row = index ~/ grid.first.length;
+                            int col = index % grid.first.length;
+                            Offset pos = Offset(row.toDouble(), col.toDouble());
+                            Color cellColor = cellColors[pos] ?? Colors.white;
+                            if (permanentIndices.contains(pos)) {
+                              cellColor = correctColor;
+                            }
+                            return LayoutBuilder(
+                              builder: (context, constraints) {
+                                log("Constraints: ${constraints.maxHeight}");
+                                return Container(
+                                  margin: EdgeInsets.symmetric(
+                                      horizontal: cellHorizontalMargin,
+                                      vertical: cellVerticalMargin),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: cellColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    grid[row][col],
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            Spacing.sizedBoxH_40(),
+            Text(
+              'Cell Size: $cellSize',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            )
           ],
         ),
       ),
